@@ -16,4 +16,4 @@ This is for submitting entries for predictoin the distribution of legal votes in
                          percent=rep(1/13, 13))
     ```
 
-*    Each prediction is score by the Brier score: the mean squared prediction error when comparing to the actual distribution of votes after the election.
+*    Each prediction is score by the Brier score: the mean squared prediction error when comparing to the actual distribution of votes after the election. Smallest score wins.
