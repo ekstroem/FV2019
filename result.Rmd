@@ -1,0 +1,69 @@
+---
+title: "FV2019 prediction winners"
+output: html_document
+---
+
+# Global paramters and packages
+
+```{r}
+library("tidyverse")
+library("ggplot2")
+```
+
+
+# Gather the predictions
+
+```{r}
+files <- list.files(path=".", pattern="*.[Rr][Dd]a(ta)?")
+
+rda2list <- function(file) {
+  e <- new.env()
+  load(file, envir = e)
+  as.list(e)
+}
+
+predictions <- Map(rda2list, file.path(".", files))
+names(predictions) <- tools::file_path_sans_ext(files)
+preds <- reshape::melt(predictions)
+
+# From https://www.dr.dk/nyheder/politik/resultater/folketingsvalg
+actual <- tibble::tibble(
+  party=c("A", "B", "C", "D", "E", "F", "I", "K", "O", "P", "V", "OE", "AA"),
+  actualpercent=c(25.9, 8.6, 6.6, 2.4, 0.8, 7.7, 2.3, 1.7, 8.7, 1.8, 23.4, 6.9, 3.0)
+  ) %>% 
+  dplyr::mutate(actualpercent=100*actualpercent/sum(actualpercent))
+  
+```
+
+## Rescale all predictions and compute 
+
+```{r}
+preds %>% 
+  dplyr::group_by(L1) %>%
+  dplyr::mutate(percent = 100*value/sum(value)) %>%  # Rescale
+  dplyr::left_join(actual) %>%
+  dplyr::summarise(RMSPE = sqrt(sum((percent-actualpercent)^2))) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(pollster=L1) %>%
+  dplyr::arrange(RMSPE)
+```
+
+
+```{r}
+preds %>% 
+  dplyr::group_by(L1) %>%
+  dplyr::mutate(percent = 100*value/sum(value)) %>%  # Rescale
+  dplyr::left_join(actual) %>%
+  dplyr::mutate(miss = percent-actualpercent,
+                RMSPE = sqrt(sum((percent-actualpercent)^2))) %>%
+  dplyr::ungroup() %>%
+  ggplot(aes(x=party, y=miss)) + 
+  geom_point() + 
+  geom_hline(yintercept = 0, linetype=2, col="gray", 5) + 
+  facet_wrap(~ L1, nrow=3) + 
+  xlab("Parti") + ylab("Prædiktionsafvigelser (procentpoint)") + 
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
